@@ -9,6 +9,7 @@ import {
   validateEventPayload,
 } from '../utils/event-utils';
 import { DiscordNotificationService } from './discord-notification';
+import { NotificationRetryQueue } from './notification-retry-queue';
 
 export class EventSubscriber {
   private config: Config;
@@ -17,23 +18,31 @@ export class EventSubscriber {
   private reconnectAttempts: number = 0;
   private lastCursors: Map<string, string> = new Map();
   private discordService: DiscordNotificationService | null = null;
+  private retryQueue: NotificationRetryQueue | null = null;
 
   constructor(config: Config) {
     this.config = config;
     this.server = new StellarSDK.rpc.Server(config.stellarRpcUrl);
     if (config.discord) {
       this.discordService = new DiscordNotificationService(config.discord);
+      this.retryQueue = new NotificationRetryQueue(
+        (event, contractConfig, requestId) =>
+          this.discordService!.sendEventNotification(event, contractConfig, requestId),
+        config.retryQueue
+      );
     }
   }
 
   async start(): Promise<void> {
     this.isRunning = true;
     logger.info('Starting event subscriber service');
+    this.retryQueue?.start();
     this.poll();
   }
 
   async stop(): Promise<void> {
     this.isRunning = false;
+    this.retryQueue?.stop();
     logger.info('Stopping event subscriber service');
   }
 
@@ -196,11 +205,12 @@ export class EventSubscriber {
         contractConfig,
         requestId
       );
-      if (!success) {
-        logger.warn('Failed to send Discord notification, event will still be processed', {
+      if (!success && this.retryQueue) {
+        logger.warn('Discord notification failed, adding to retry queue', {
           requestId,
           eventId: event.id,
         });
+        this.retryQueue.enqueue(event, contractConfig, requestId);
       }
     }
 

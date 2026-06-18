@@ -8,6 +8,11 @@ export interface DiscordConfig {
   webhookId: string;
 }
 
+export interface RetryQueueConfig {
+  baseDelayMs?: number;
+  maxRetries?: number;
+}
+
 export interface Config {
   stellarNetwork: string;
   stellarRpcUrl: string;
@@ -18,4 +23,5 @@ export interface Config {
   eventsApiPort: number;
   eventsApiCorsOrigin: string;
   discord?: DiscordConfig;
+  retryQueue?: RetryQueueConfig;
 }

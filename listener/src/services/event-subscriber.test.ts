@@ -535,7 +535,7 @@ describe('EventSubscriber', () => {
       await (subscriber as any).checkForEvents();
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Failed to send Discord notification, event will still be processed',
+        'Discord notification failed, adding to retry queue',
         expect.objectContaining({ eventId: 'event-1' })
       );
     });

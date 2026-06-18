@@ -27,6 +27,10 @@ function loadConfig(): Config {
     eventsApiPort: parseInt(process.env.EVENTS_API_PORT || '8787'),
     eventsApiCorsOrigin: process.env.EVENTS_API_CORS_ORIGIN || 'http://localhost:5173',
     discord,
+    retryQueue: {
+      baseDelayMs: parseInt(process.env.RETRY_BASE_DELAY_MS || '5000'),
+      maxRetries: parseInt(process.env.RETRY_MAX_RETRIES || '5'),
+    },
   };
 }
 
