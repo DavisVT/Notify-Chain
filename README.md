@@ -85,6 +85,7 @@ A subscription and group management contract that allows users to:
 - Handle subscription payments
 - Track usage
 - Admin management
+- Expose contract version for verification
 
 Key Modules:
 - `base/types.rs`: Data structures

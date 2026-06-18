@@ -21,8 +21,15 @@ pub mod mock_token;
 #[contract]
 pub struct AutoShareContract;
 
+const VERSION: u32 = 1;
+
 #[contractimpl]
 impl AutoShareContract {
+    /// Returns the current version of the contract.
+    pub fn version(_env: Env) -> u32 {
+        VERSION
+    }
+
     // ============================================================================
     // Admin Management
     // ============================================================================
@@ -230,6 +237,10 @@ impl AutoShareContract {
 }
 
 #[cfg(test)]
+#[path = "tests/test_utils.rs"]
+pub mod test_utils;
+
+#[cfg(test)]
 mod tests {
     #[path = "../tests/autoshare_test.rs"]
     mod autoshare_test;
@@ -240,8 +251,8 @@ mod tests {
     #[path = "../tests/mock_token_test.rs"]
     mod mock_token_test;
 
-    #[path = "../tests/test_utils.rs"]
-    pub mod test_utils;
+    #[path = "../tests/version_test.rs"]
+    mod version_test;
 
     #[path = "../tests/test_utils_test.rs"]
     mod test_utils_test;
