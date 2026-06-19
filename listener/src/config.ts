@@ -77,7 +77,12 @@ function loadDiscordConfig(): DiscordConfig | undefined {
     throw new ConfigError('DISCORD_WEBHOOK_ID is required when DISCORD_WEBHOOK_URL is provided.');
   }
 
-  return { webhookUrl, webhookId };
+  return {
+    webhookUrl,
+    webhookId,
+    deduplicationWindowMs: parseIntegerEnv('NOTIFICATION_DEDUPLICATION_WINDOW_MS', '60000'),
+    deduplicationMaxSize: parseIntegerEnv('NOTIFICATION_DEDUPLICATION_MAX_SIZE', '10000'),
+  };
 }
 
 export function loadConfig(): Config {
@@ -101,3 +106,4 @@ export function loadConfig(): Config {
     },
   };
 }
+

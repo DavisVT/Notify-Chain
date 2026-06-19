@@ -28,7 +28,12 @@ export class DiscordNotificationService {
 
   constructor(config: DiscordConfig, deduplicator?: NotificationDeduplicator) {
     this.config = config;
-    this.deduplicator = deduplicator ?? new NotificationDeduplicator();
+    this.deduplicator =
+      deduplicator ??
+      new NotificationDeduplicator({
+        windowMs: config.deduplicationWindowMs,
+        maxSize: config.deduplicationMaxSize,
+      });
   }
 
   async sendEventNotification(
@@ -43,8 +48,9 @@ export class DiscordNotificationService {
         eventId: event.id,
         contractAddress: contractConfig.address,
         fingerprint,
+        deduplication: this.deduplicator.getMetrics(),
       });
-      return false;
+      return true;
     }
     const logContext = {
       requestId,
@@ -82,6 +88,7 @@ export class DiscordNotificationService {
       logger.info('Discord notification delivered', {
         ...logContext,
         durationMs,
+        deduplication: this.deduplicator.getMetrics(),
       });
       return true;
     } catch (error) {
@@ -92,6 +99,10 @@ export class DiscordNotificationService {
       });
       return false;
     }
+  }
+
+  getDeduplicationMetrics() {
+    return this.deduplicator.getMetrics();
   }
 
   async sendTestMessage(requestId?: string): Promise<boolean> {
@@ -235,3 +246,4 @@ export class DiscordNotificationService {
     }
   }
 }
+
