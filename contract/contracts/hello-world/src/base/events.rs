@@ -1,4 +1,4 @@
-use soroban_sdk::{contractevent, contracttype, Address, BytesN};
+use soroban_sdk::{contractevent, contracttype, Address, BytesN, String};
 
 /// High-level notification category attached to every emitted event.
 ///
@@ -107,4 +107,15 @@ pub struct Withdrawal {
     #[topic]
     pub category: NotificationCategory,
     pub amount: i128,
+}
+
+/// Emitted when an authorization failure is detected by the contract.
+#[contractevent(data_format = "single-value")]
+#[derive(Clone)]
+pub struct AuthorizationFailure {
+    #[topic]
+    pub caller: Address,
+    #[topic]
+    pub category: NotificationCategory,
+    pub action: String,
 }
