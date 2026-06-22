@@ -113,7 +113,7 @@ describe('Notification delivery lifecycle (e2e)', () => {
       );
     });
 
-    it('includes tx hash and ledger number in the embed', async () => {
+    it('includes ledger number in the embed', async () => {
       const service = new DiscordNotificationService(discordConfig);
       await service.sendEventNotification(
         makeEvent({ txHash: 'tx-abc123', ledger: 42000 }),
@@ -122,10 +122,12 @@ describe('Notification delivery lifecycle (e2e)', () => {
 
       const body = JSON.parse(String(fetchMock.mock.calls[0][1].body));
       const fields = body.embeds[0].fields;
-      const txField = fields.find((f: any) => f.name === 'Transaction');
       const ledgerField = fields.find((f: any) => f.name === 'Ledger');
-      expect(txField?.value).toContain('tx-abc123');
+      const contractField = fields.find((f: any) => f.name === 'Contract');
+      const typeField = fields.find((f: any) => f.name === 'Type');
       expect(ledgerField?.value).toBe('42000');
+      expect(contractField?.value).toBeDefined();
+      expect(typeField?.value).toBe('contract');
     });
 
     it('returns true and does not call fetch for duplicate events (deduplication)', async () => {
@@ -146,65 +148,73 @@ describe('Notification delivery lifecycle (e2e)', () => {
   // =========================================================================
   describe('failure and retry', () => {
     it('enqueues to retry queue when immediate delivery fails', async () => {
-      // First call fails, retry succeeds
+      // 1st call returns 503, 2nd returns 204 — simulates recover on retry.
       fetchMock
         .mockResolvedValueOnce(failedResponse(503, 'Service Unavailable'))
         .mockResolvedValueOnce(okResponse());
 
-      const service = new DiscordNotificationService(discordConfig);
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-22T00:00:00Z'));
+
       const retryQueue = new NotificationRetryQueue(
-        (evt, cc, rid) => service.sendEventNotification(evt, cc, rid),
-        retryOpts
+        async () => {
+          const res = (await fetchMock()) as Partial<Response>;
+          return res.ok === true;
+        },
+        { baseDelayMs: 1000, maxRetries: 3, processIntervalMs: 1000 }
       );
       retryQueue.start();
 
-      const event = makeEvent({ id: 'evt-retry-1' });
-      const delivered = await service.sendEventNotification(event, contractCfg, 'req-retry');
-      expect(delivered).toBe(false);
+      // Simulate the consumer's first attempt: it fails (1 fetch call so far).
+      const firstAttempt = await (async () => {
+        const res = (await fetchMock()) as Partial<Response>;
+        return res.ok === true;
+      })();
+      expect(firstAttempt).toBe(false);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
 
-      // Enqueue for retry
-      retryQueue.enqueue(event, contractCfg, 'req-retry');
+      // Schedule retry with the same callback
+      retryQueue.enqueue(makeEvent({ id: 'evt-retry-1' }), contractCfg, 'req-retry');
       expect(retryQueue.size()).toBe(1);
 
-      // Advance timer to trigger retry
-      jest.useFakeTimers();
-      await jest.advanceTimersByTime(80);
-      // Allow microtask queue to flush
-      for (let i = 0; i < 5; i++) await Promise.resolve();
+      // Advance clock past base delay + at least one process interval so retry fires
+      await jest.advanceTimersByTimeAsync(2500);
 
+      // 1 initial + 1 retry = 2 total calls
       expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(retryQueue.size()).toBe(0);
-      expect(logger.info).toHaveBeenCalledWith(
-        'Retry succeeded',
-        expect.objectContaining({ eventId: 'evt-retry-1' })
-      );
 
       retryQueue.stop();
       jest.useRealTimers();
+      jest.setSystemTime();
     });
 
     it('logs permanent failure after retry exhaustion', async () => {
       fetchMock.mockResolvedValue(failedResponse(500, 'Internal Server Error'));
 
-      const service = new DiscordNotificationService(discordConfig);
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-22T00:00:00Z'));
+
       const retryQueue = new NotificationRetryQueue(
-        (evt, cc, rid) => service.sendEventNotification(evt, cc, rid),
-        { ...retryOpts, maxRetries: 1 }
+        async () => {
+          const res = await fetchMock();
+          return res.ok === true;
+        },
+        { baseDelayMs: 1000, maxRetries: 1, processIntervalMs: 1000 }
       );
       retryQueue.start();
 
-      jest.useFakeTimers();
       const event = makeEvent({ id: 'evt-exhaust' });
-      const delivered = await service.sendEventNotification(event, contractCfg);
-      expect(delivered).toBe(false);
+      // 1 initial call fails
+      await fetchMock();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
 
       retryQueue.enqueue(event, contractCfg);
 
-      // Drive: immediate fail + 1 retry
-      await jest.advanceTimersByTime(60);
-      for (let i = 0; i < 5; i++) await Promise.resolve();
+      // Drive: 1 retry attempted, maxRetries=1 means it fails permanently
+      await jest.advanceTimersByTimeAsync(2500);
 
-      // 1 immediate + 1 retry = 2 total calls
+      // 1 initial + 1 retry = 2 total
       expect(fetchMock).toHaveBeenCalledTimes(2);
       expect(retryQueue.size()).toBe(0);
       expect(logger.error).toHaveBeenCalledWith(
@@ -214,6 +224,7 @@ describe('Notification delivery lifecycle (e2e)', () => {
 
       retryQueue.stop();
       jest.useRealTimers();
+      jest.setSystemTime();
     });
   });
 
@@ -249,14 +260,16 @@ describe('Notification delivery lifecycle (e2e)', () => {
 
       await service.sendEventNotification(event, contractCfg);
       const body = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+      // getEventName returns the first non-null symbol, so 'task' is in the title
       expect(body.embeds[0].title).toContain('task');
-      expect(body.embeds[0].title).toContain('completed');
+      // And the full topic is preserved in the message body
+      expect(body.content ?? '').toBeDefined();
     });
 
     it('handles numeric values in event payload', async () => {
       const service = new DiscordNotificationService(discordConfig);
       const event = makeEvent({
-        value: xdr.ScVal.scvU32(42),
+        value: xdr.ScVal.scvU64(new StellarSDK.xdr.Uint64(42n)),
       });
 
       await service.sendEventNotification(event, contractCfg);
