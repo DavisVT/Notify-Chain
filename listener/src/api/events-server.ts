@@ -484,7 +484,9 @@ export function createEventsServer(options: EventsServerOptions): http.Server {
       const userId = decodeURIComponent(getPrefsMatch[1]);
       logger.info('Handling GET /api/preferences/:userId', { requestId, correlationId, userId });
       const prefs = preferenceStore.get(userId);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(prefs));
+      return;
     }
 
     // PUT /api/preferences/:userId
