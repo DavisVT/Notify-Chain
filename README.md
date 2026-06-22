@@ -493,3 +493,9 @@ This project is licensed under the MIT License.
 NotifyChain is built to simplify event-driven blockchain development by bridging smart contract events with off-chain automation and notification systems.
 
 Built on [Stellar](https://www.stellar.org/) and [Soroban](https://soroban.stellar.org/).
+
+## Staging Environment Instructions
+To run the staging environment locally:
+1. Export environment variables: `export $(cat listener/.env.staging | xargs)`
+2. Build and run listener: `cd listener && npm ci && npm run build && npm start`
+3. Run health check: `./scripts/health-check.sh`
