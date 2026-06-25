@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { EventFiltersBar } from '../components/EventFiltersBar';
+import { NotificationSearchBar } from '../components/NotificationSearchBar';
 import { WalletConnectButton } from '../components/WalletConnectButton';
 import { EventExplorerTable } from '../components/EventExplorerTable';
 import { EventExplorerSkeleton } from '../components/EventExplorerSkeleton';
 import { PaginationControls } from '../components/PaginationControls';
+import { IndexingHealthPanel } from '../components/IndexingHealthPanel';
 import { useEventFilters, useEventLoadingState, useFilteredEvents } from '../hooks/useEventSelectors';
 import { useEventStore } from '../store/eventStore';
 import { fetchEvents } from '../services/eventsApi';
+import { resolveIndexingHealthUrl } from '../services/indexingHealthApi';
 import { generateMockEvents } from '../utils/eventData';
 import { restoreWalletSession } from '../services/wallet';
 
 const DEFAULT_EVENT_COUNT = 5000;
 const DEFAULT_LIMIT = 12;
 const API_URL = import.meta.env.VITE_EVENTS_API_URL ?? 'http://localhost:8787/api/events';
+const INDEXING_HEALTH_URL =
+  import.meta.env.VITE_INDEXING_HEALTH_URL ?? resolveIndexingHealthUrl(API_URL);
 
 function parsePageParam(search: string) {
   const params = new URLSearchParams(search);
@@ -86,7 +91,7 @@ export function EventExplorerPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [filters.search, filters.contractAddress, filters.eventType]);
+  }, [filters.search, filters.contractAddress, filters.eventType, filters.status, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -137,7 +142,10 @@ export function EventExplorerPage() {
         <WalletConnectButton />
       </header>
 
+      <IndexingHealthPanel healthUrl={INDEXING_HEALTH_URL} />
+
       <EventFiltersBar />
+      <NotificationSearchBar />
 
       {error && (
         <section className="event-explorer__error-banner" role="alert">

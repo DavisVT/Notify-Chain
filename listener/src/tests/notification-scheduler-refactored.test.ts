@@ -306,15 +306,7 @@ describe('NotificationScheduler (Refactored)', () => {
           .build()
       );
 
-      // 2. Create a notification in the past (overdue, pending)
-      await repository.create(
-        NotificationFixtureBuilder
-          .aScheduledNotificationInput()
-          .forImmediateExecution()
-          .build()
-      );
-
-      // 3. Create a notification in the past that is currently PROCESSING but lock is expired
+      // 2. Create a notification in the past that is currently PROCESSING but lock is expired
       const staleId = await repository.create(
         NotificationFixtureBuilder
           .aScheduledNotificationInput()
@@ -333,6 +325,14 @@ describe('NotificationScheduler (Refactored)', () => {
           pastLock.toISOString(),
           staleId,
         ]
+      );
+
+      // 3. Create a notification in the past (overdue, pending) - created AFTER locking to remain in PENDING status
+      await repository.create(
+        NotificationFixtureBuilder
+          .aScheduledNotificationInput()
+          .forImmediateExecution()
+          .build()
       );
 
       // Get stats BEFORE recovery
