@@ -249,3 +249,7 @@ pub mod test_utils;
 #[cfg(test)]
 #[path = "tests/test_utils_test.rs"]
 mod test_utils_test;
+
+#[cfg(test)]
+#[path = "tests/storage_optimization_test.rs"]
+mod storage_optimization_test;
