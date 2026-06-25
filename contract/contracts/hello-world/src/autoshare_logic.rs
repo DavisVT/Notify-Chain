@@ -242,7 +242,7 @@ pub fn add_group_member(
     });
 
     // Validate total percentage after adding
-    validate_members(&details.members)?;
+    validate_members(&env, &details.members)?;
 
     // Save updated details
     env.storage().persistent().set(&key, &details);
@@ -265,7 +265,9 @@ pub fn initialize_admin(env: Env, admin: Address) {
 
         // Initialize empty supported tokens list in instance storage
         let empty_tokens: Vec<Address> = Vec::new(&env);
-        env.storage().instance().set(&INSTANCE_TOKENS, &empty_tokens);
+        env.storage()
+            .instance()
+            .set(&INSTANCE_TOKENS, &empty_tokens);
     }
 }
 
@@ -336,8 +338,6 @@ pub fn pause(env: Env, admin: Address) -> Result<(), Error> {
     }
 
     env.storage().instance().set(&INSTANCE_PAUSED, &true);
-    ContractPaused {}.publish(&env);
-    env.storage().persistent().set(&pause_key, &true);
     ContractPaused {
         category: NotificationCategory::Admin,
         priority: NotificationPriority::High,
@@ -361,8 +361,6 @@ pub fn unpause(env: Env, admin: Address) -> Result<(), Error> {
     }
 
     env.storage().instance().set(&INSTANCE_PAUSED, &false);
-    ContractUnpaused {}.publish(&env);
-    env.storage().persistent().set(&pause_key, &false);
     ContractUnpaused {
         category: NotificationCategory::Admin,
         priority: NotificationPriority::High,
@@ -468,10 +466,7 @@ pub fn set_usage_fee(env: Env, fee: u32, admin: Address) -> Result<(), Error> {
 }
 
 pub fn get_usage_fee(env: Env) -> u32 {
-    env.storage()
-        .instance()
-        .get(&INSTANCE_FEE)
-        .unwrap_or(10u32)
+    env.storage().instance().get(&INSTANCE_FEE).unwrap_or(10u32)
 }
 
 // ============================================================================
@@ -831,7 +826,7 @@ pub fn withdraw(
     Ok(())
 }
 
-fn validate_members(members: &Vec<GroupMember>) -> Result<(), Error> {
+fn validate_members(env: &Env, members: &Vec<GroupMember>) -> Result<(), Error> {
     if members.is_empty() {
         return Err(Error::EmptyMembers);
     }
@@ -839,7 +834,6 @@ fn validate_members(members: &Vec<GroupMember>) -> Result<(), Error> {
     if members.len() > MAX_MEMBERS {
         return Err(Error::TooManyMembers);
     }
-    let env = members.env();
     let mut total_percentage: u32 = 0;
     let mut seen_addresses = Vec::new(env);
 
@@ -1166,4 +1160,3 @@ pub fn extend_notification_expiry(
 
     Ok(())
 }
-

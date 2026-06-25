@@ -17,7 +17,6 @@ import {
   collectRawBody,
 } from '../services/webhook-verifier';
 import { WebhookSecret, RateLimitConfig, ContractConfig } from '../types';
-import { WebhookSecret, RateLimitConfig } from '../types';
 import { RateLimiter } from './rate-limiter';
 import {
   getNotificationAnalyticsAggregator,
@@ -43,8 +42,8 @@ export interface EventsServerOptions {
   port: number;
   corsOrigin?: string;
   stellarRpcUrl: string;
-  stellarNetworkPassphrase: string;
-  contractAddresses: ContractConfig[];
+  stellarNetworkPassphrase?: string;
+  contractAddresses?: ContractConfig[];
   discordWebhookUrl?: string;
   webhookSecrets?: WebhookSecret[];
   notificationAPI?: NotificationAPI | null;
@@ -202,19 +201,24 @@ async function buildStatusResponse(options: EventsServerOptions): Promise<{
   }>;
   timestamp: string;
 }> {
-  const contractStatuses = await Promise.all(
-    options.contractAddresses.map(async (contractConfig) => {
-      const status = await getContractPauseStatus(contractConfig.address, options.stellarRpcUrl);
-      return {
-        address: contractConfig.address,
-        ...status
-      };
-    })
-  );
+  const contractStatuses = options.contractAddresses 
+    ? await Promise.all(
+        options.contractAddresses.map(async (contractConfig) => {
+          const status = await getContractPauseStatus(contractConfig.address, options.stellarRpcUrl);
+          return {
+            address: contractConfig.address,
+            ...status
+          };
+        })
+      )
+    : [];
 
   return {
     timestamp: new Date().toISOString(),
     contracts: contractStatuses
+  };
+}
+
 async function fetchNetworkTipLedger(rpcUrl: string): Promise<{
   ledger: number | null;
   errorDetail?: string;

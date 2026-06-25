@@ -312,7 +312,6 @@ impl AutoShareContract {
     ) -> bool {
         preferences_logic::is_category_enabled(env, recipient, category)
     }
-}
 
     // ============================================================================
     // Scheduled Notification Management
