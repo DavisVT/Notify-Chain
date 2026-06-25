@@ -1,3 +1,4 @@
+import { Config, ContractConfig, DiscordConfig, WebhookSecret, AppCleanupConfig, EventQueueConfig } from './types';
 import { Config, ContractConfig, DiscordConfig, WebhookSecret, AppCleanupConfig, RetrySchedulerOptions } from './types';
 
 export class ConfigError extends Error {
@@ -161,6 +162,12 @@ export function loadConfig(): Config {
       maxRetries: parseIntegerEnv('RETRY_MAX_RETRIES', '5'),
       multiplier: parseIntegerEnv('RETRY_MULTIPLIER', '2'),
       jitter: trimEnv('RETRY_JITTER') !== 'false',
+    },
+    eventQueue: {
+      maxConcurrency: parseIntegerEnv('EVENT_QUEUE_MAX_CONCURRENCY', '1'),
+      maxRetries: parseIntegerEnv('EVENT_QUEUE_MAX_RETRIES', '3'),
+      baseDelayMs: parseIntegerEnv('EVENT_QUEUE_BASE_DELAY_MS', '2000'),
+      pollIntervalMs: parseIntegerEnv('EVENT_QUEUE_POLL_INTERVAL_MS', '1000'),
     },
     webhookSecrets: validateWebhookSecrets(rawWebhookSecrets),
     scheduler: {
