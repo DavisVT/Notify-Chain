@@ -1234,12 +1234,7 @@ fn append_audit_record(
 ) {
     // Increment sequence counter.
     let seq_key = DataKey::AuditSeq;
-    let seq: u64 = env
-        .storage()
-        .instance()
-        .get(&seq_key)
-        .unwrap_or(0u64)
-        + 1;
+    let seq: u64 = env.storage().instance().get(&seq_key).unwrap_or(0u64) + 1;
     env.storage().instance().set(&seq_key, &seq);
 
     let timestamp = env.ledger().timestamp();

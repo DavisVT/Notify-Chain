@@ -182,7 +182,10 @@ fn test_schedule_rejects_duplicate_id() {
 
     client.schedule_notification(&id, &creator, &3_600u64);
     let result = client.try_schedule_notification(&id, &creator, &3_600u64);
-    assert!(result.is_err(), "duplicate notification id must be rejected");
+    assert!(
+        result.is_err(),
+        "duplicate notification id must be rejected"
+    );
 }
 
 #[test]
@@ -281,7 +284,10 @@ fn test_update_members_rejects_duplicate_addresses() {
     });
 
     let result = client.try_update_members(&id, &creator, &bad_members);
-    assert!(result.is_err(), "duplicate member addresses must be rejected");
+    assert!(
+        result.is_err(),
+        "duplicate member addresses must be rejected"
+    );
 }
 
 #[test]
@@ -635,7 +641,10 @@ fn test_consumer_can_filter_by_category() {
     tally(&test_env.env);
 
     assert_eq!(group_events, 1, "one Group event expected");
-    assert_eq!(admin_events, 2, "two Admin events expected (pause + unpause)");
+    assert_eq!(
+        admin_events, 2,
+        "two Admin events expected (pause + unpause)"
+    );
     assert!(notification_events >= 1, "at least one Notification event");
     assert_eq!(financial_events, 1, "one Financial event expected");
 }

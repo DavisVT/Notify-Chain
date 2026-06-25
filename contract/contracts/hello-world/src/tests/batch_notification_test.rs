@@ -178,7 +178,9 @@ fn test_batch_single_notification() {
     // A batch of one is valid.
     client.batch_schedule_notifications(&ids, &creator, &ttls);
 
-    assert!(client.try_get_notification(&make_id(&test_env.env, 40)).is_ok());
+    assert!(client
+        .try_get_notification(&make_id(&test_env.env, 40))
+        .is_ok());
 }
 
 #[test]

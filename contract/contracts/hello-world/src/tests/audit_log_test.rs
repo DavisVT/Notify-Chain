@@ -376,7 +376,10 @@ fn test_delivery_attempt_blocked_when_paused() {
     client.pause(&test_env.admin);
 
     let result = client.try_record_delivery_attempt(&id, &relay);
-    assert!(result.is_err(), "delivery attempt must be blocked when paused");
+    assert!(
+        result.is_err(),
+        "delivery attempt must be blocked when paused"
+    );
 }
 
 #[test]
