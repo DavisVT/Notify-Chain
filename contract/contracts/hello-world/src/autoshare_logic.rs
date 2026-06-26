@@ -323,6 +323,7 @@ pub fn pause(env: Env, admin: Address) -> Result<(), Error> {
 
     env.storage().persistent().set(&pause_key, &true);
     ContractPaused {
+        admin: admin.clone(),
         category: NotificationCategory::Admin,
         priority: NotificationPriority::High,
     }
@@ -343,6 +344,7 @@ pub fn unpause(env: Env, admin: Address) -> Result<(), Error> {
 
     env.storage().persistent().set(&pause_key, &false);
     ContractUnpaused {
+        admin: admin.clone(),
         category: NotificationCategory::Admin,
         priority: NotificationPriority::High,
     }

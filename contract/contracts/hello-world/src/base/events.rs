@@ -73,6 +73,8 @@ pub struct AutoshareCreated {
 #[derive(Clone)]
 pub struct ContractPaused {
     #[topic]
+    pub admin: Address,
+    #[topic]
     pub category: NotificationCategory,
     #[topic]
     pub priority: NotificationPriority,
@@ -82,6 +84,8 @@ pub struct ContractPaused {
 #[contractevent]
 #[derive(Clone)]
 pub struct ContractUnpaused {
+    #[topic]
+    pub admin: Address,
     #[topic]
     pub category: NotificationCategory,
     #[topic]
