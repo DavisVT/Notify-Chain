@@ -9,6 +9,7 @@ import { DiscordNotificationService } from './services/discord-notification';
 import { initNotificationAnalyticsAggregator } from './services/notification-analytics-aggregator';
 import { NotificationMetricsStore } from './services/notification-metrics-store';
 import { NotificationMetricsRunner } from './services/notification-metrics-runner';
+import { NotificationCleanupWorker } from './services/notification-cleanup-worker';
 import logger from './utils/logger';
 import { loadConfig, ConfigError } from './config';
 
@@ -21,6 +22,7 @@ async function main() {
   let notificationAPI: NotificationAPI | null = null;
   let metricsRunner: NotificationMetricsRunner | null = null;
   let metricsStore: NotificationMetricsStore | null = null;
+  let cleanupWorker: NotificationCleanupWorker | null = null;
 
   const needDb =
     config.scheduler?.enabled ||
@@ -36,6 +38,13 @@ async function main() {
     try {
       logger.info('Initializing database');
       const db = await initializeDatabase(config.databasePath);
+      const repository = new ScheduledNotificationRepository(db);
+
+      if (config.cleanup?.enabled) {
+        cleanupWorker = new NotificationCleanupWorker(repository, config.cleanup);
+        await cleanupWorker.start();
+        logger.info('Notification cleanup worker started successfully');
+      }
 
       if (config.analytics?.enabled) {
         metricsStore = new NotificationMetricsStore(db);
@@ -45,7 +54,6 @@ async function main() {
       }
 
       if (config.scheduler?.enabled) {
-        const repository = new ScheduledNotificationRepository(db);
         notificationAPI = new NotificationAPI(repository);
 
         let discordService: DiscordNotificationService | null = null;
@@ -82,6 +90,10 @@ async function main() {
 
     if (metricsRunner) {
       await metricsRunner.stop();
+    }
+
+    if (cleanupWorker) {
+      await cleanupWorker.stop();
     }
 
     if (scheduler) {
