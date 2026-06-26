@@ -1,5 +1,4 @@
-import { Config, ContractConfig, DiscordConfig, WebhookSecret, AppCleanupConfig, EventQueueConfig } from './types';
-import { Config, ContractConfig, DiscordConfig, WebhookSecret, AppCleanupConfig, RetrySchedulerOptions } from './types';
+import { Config, ContractConfig, DiscordConfig, WebhookSecret, AppCleanupConfig, EventQueueConfig, RetrySchedulerOptions, AnalyticsConfig } from './types';
 
 export class ConfigError extends Error {
   constructor(message: string) {
@@ -119,6 +118,21 @@ function loadCleanupConfig(): AppCleanupConfig {
     notificationRetentionMs: parseIntegerEnv('NOTIFICATION_RETENTION_MS', String(7 * 24 * 60 * 60 * 1000)),
     rateLimitEventRetentionMs: parseIntegerEnv('RATE_LIMIT_EVENT_RETENTION_MS', String(24 * 60 * 60 * 1000)),
     eventRetentionMs: parseIntegerEnv('EVENT_RETENTION_MS', String(24 * 60 * 60 * 1000)),
+    executionLogRetentionMs: parseIntegerEnv(
+      'EXECUTION_LOG_RETENTION_MS',
+      String(90 * 24 * 60 * 60 * 1000),
+    ),
+  };
+}
+
+function loadAnalyticsConfig(): AnalyticsConfig {
+  return {
+    enabled: trimEnv('ANALYTICS_ENABLED') !== 'false',
+    maxRecords: parseIntegerEnv('ANALYTICS_MAX_RECORDS', '10000'),
+    maxBuckets: parseIntegerEnv('ANALYTICS_MAX_BUCKETS', '168'),
+    bucketSizeMs: parseIntegerEnv('ANALYTICS_BUCKET_SIZE_MS', String(60 * 60 * 1000)),
+    persistIntervalMs: parseIntegerEnv('ANALYTICS_PERSIST_INTERVAL_MS', '300000'),
+    snapshotRetentionDays: parseIntegerEnv('ANALYTICS_SNAPSHOT_RETENTION_DAYS', '30'),
   };
 }
 
@@ -149,6 +163,7 @@ export function loadConfig(): Config {
     stellarNetwork: trimEnv('STELLAR_NETWORK') || 'testnet',
     stellarRpcUrl:
       trimEnv('STELLAR_RPC_URL') || 'https://soroban-testnet.stellar.org:443',
+    stellarNetworkPassphrase: trimEnv('STELLAR_NETWORK_PASSPHRASE') || 'Test SDF Network ; September 2015',
     contractAddresses: validateContractAddresses(rawContractAddresses),
     pollIntervalMs: parseIntegerEnv('POLL_INTERVAL_MS', '30000'),
     maxReconnectAttempts: parseIntegerEnv('MAX_RECONNECT_ATTEMPTS', '5'),
@@ -186,6 +201,7 @@ export function loadConfig(): Config {
       clientOverrides,
     },
     cleanup: loadCleanupConfig(),
+    analytics: loadAnalyticsConfig(),
   };
 }
 

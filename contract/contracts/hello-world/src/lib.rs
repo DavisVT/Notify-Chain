@@ -5,6 +5,7 @@ use soroban_sdk::{contract, contractimpl, Address, BytesN, Env, String, Vec};
 pub mod base {
     pub mod errors;
     pub mod events;
+    pub mod metadata_validation;
     pub mod preferences;
     pub mod types;
 }
@@ -54,6 +55,27 @@ impl AutoShareContract {
     /// Returns the current pause status.
     pub fn get_paused_status(env: Env) -> bool {
         autoshare_logic::get_paused_status(&env)
+    }
+
+    /// Registers a notification category in the on-chain registry.
+    pub fn register_category(
+        env: Env,
+        admin: Address,
+        category: base::events::NotificationCategory,
+    ) {
+        autoshare_logic::register_category(env, admin, category).unwrap();
+    }
+
+    /// Returns all registered notification categories.
+    pub fn get_registered_categories(
+        env: Env,
+    ) -> soroban_sdk::Vec<base::events::NotificationCategory> {
+        autoshare_logic::get_registered_categories(env)
+    }
+
+    /// Returns whether a notification category is registered.
+    pub fn is_category_registered(env: Env, category: base::events::NotificationCategory) -> bool {
+        autoshare_logic::is_category_registered(env, category)
     }
 
     // ============================================================================
@@ -312,7 +334,6 @@ impl AutoShareContract {
     ) -> bool {
         preferences_logic::is_category_enabled(env, recipient, category)
     }
-}
 
     // ============================================================================
     // Scheduled Notification Management
@@ -334,14 +355,17 @@ impl AutoShareContract {
     /// Schedules a notification on-chain that expires after `ttl_seconds`.
     ///
     /// The notification becomes invalid once the ledger timestamp reaches
-    /// `created_at + ttl_seconds`. Emits a `NotificationScheduled` event.
+    /// `created_at + ttl_seconds`. Metadata (title) is validated for consistency.
+    /// Emits a `NotificationScheduled` event.
     pub fn schedule_notification(
         env: Env,
         notification_id: BytesN<32>,
         creator: Address,
         ttl_seconds: u64,
+        title: String,
     ) {
-        autoshare_logic::schedule_notification(env, notification_id, creator, ttl_seconds).unwrap();
+        autoshare_logic::schedule_notification(env, notification_id, creator, ttl_seconds, title)
+            .unwrap();
     }
 
     /// Returns the stored details for a scheduled notification.
@@ -437,8 +461,44 @@ impl AutoShareContract {
         caller: Address,
         extension_seconds: u64,
     ) {
-        autoshare_logic::extend_notification_expiry(env, notification_id, caller, extension_seconds)
-            .unwrap();
+        autoshare_logic::extend_notification_expiry(
+            env,
+            notification_id,
+            caller,
+            extension_seconds,
+        )
+        .unwrap();
+    }
+
+    // ============================================================================
+    // Notification Limits Configuration
+    // ============================================================================
+
+    /// Sets protocol-level notification limits (admin only).
+    /// Configurable limits include maximum payload size, expiration periods, and batch sizes.
+    /// Emits a `NotificationLimitsConfigured` event on successful configuration.
+    pub fn configure_notification_limits(
+        env: Env,
+        admin: Address,
+        max_payload_size: u32,
+        max_expiration_seconds: u64,
+        min_expiration_seconds: u64,
+        max_batch_size: u32,
+    ) {
+        autoshare_logic::configure_notification_limits(
+            env,
+            admin,
+            max_payload_size,
+            max_expiration_seconds,
+            min_expiration_seconds,
+            max_batch_size,
+        )
+        .unwrap();
+    }
+
+    /// Returns the current notification limits.
+    pub fn get_notification_limits(env: Env) -> base::types::NotificationLimits {
+        autoshare_logic::get_notification_limits(env)
     }
 }
 
@@ -476,6 +536,9 @@ mod tests {
     #[path = "../tests/notification_test.rs"]
     mod notification_test;
 
+    #[path = "../tests/category_registry_test.rs"]
+    mod category_registry_test;
+
     #[path = "../tests/expiration_test.rs"]
     mod expiration_test;
 
@@ -490,4 +553,7 @@ mod tests {
 
     #[path = "../tests/revocation_test.rs"]
     mod revocation_test;
+
+    #[path = "../tests/fuzz_test.rs"]
+    mod fuzz_test;
 }

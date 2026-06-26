@@ -68,10 +68,24 @@ pub struct AutoshareCreated {
     pub id: BytesN<32>,
 }
 
+/// Emitted when a notification category is registered on-chain.
+#[contractevent]
+#[derive(Clone)]
+pub struct CategoryRegistered {
+    #[topic]
+    pub admin: Address,
+    #[topic]
+    pub category: NotificationCategory,
+    #[topic]
+    pub priority: NotificationPriority,
+}
+
 /// Emitted when the contract is paused by the admin.
 #[contractevent]
 #[derive(Clone)]
 pub struct ContractPaused {
+    #[topic]
+    pub admin: Address,
     #[topic]
     pub category: NotificationCategory,
     #[topic]
@@ -82,6 +96,8 @@ pub struct ContractPaused {
 #[contractevent]
 #[derive(Clone)]
 pub struct ContractUnpaused {
+    #[topic]
+    pub admin: Address,
     #[topic]
     pub category: NotificationCategory,
     #[topic]
@@ -312,3 +328,18 @@ pub struct NotificationExtended {
     pub new_expires_at: u64,
 }
 
+/// Emitted when protocol-level notification limits are configured or updated.
+#[contractevent]
+#[derive(Clone)]
+pub struct NotificationLimitsConfigured {
+    #[topic]
+    pub admin: Address,
+    #[topic]
+    pub category: NotificationCategory,
+    #[topic]
+    pub priority: NotificationPriority,
+    pub max_payload_size: u32,
+    pub max_expiration_seconds: u64,
+    pub min_expiration_seconds: u64,
+    pub max_batch_size: u32,
+}

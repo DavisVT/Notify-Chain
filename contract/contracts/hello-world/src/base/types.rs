@@ -43,6 +43,8 @@ pub struct ScheduledNotification {
     pub revoked_by: Option<Address>,
     /// Ledger timestamp (seconds) at which the notification was revoked, if revoked.
     pub revoked_at: Option<u64>,
+    /// Notification title (required metadata for off-chain processing)
+    pub title: String,
 }
 
 #[contracttype]
@@ -75,4 +77,20 @@ pub struct AuditRecord {
     pub actor: Address,
     /// Ledger timestamp (seconds) when the action occurred.
     pub timestamp: u64,
+}
+
+/// Protocol-level configurable limits for notifications.
+/// Allows administrators to set boundaries on notification sizes,
+/// expiration periods, and batch operation sizes.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct NotificationLimits {
+    /// Maximum size in bytes for a notification payload
+    pub max_payload_size: u32,
+    /// Maximum number of seconds a notification can be scheduled to expire
+    pub max_expiration_seconds: u64,
+    /// Minimum number of seconds before a notification can expire
+    pub min_expiration_seconds: u64,
+    /// Maximum number of notifications in a batch operation
+    pub max_batch_size: u32,
 }
