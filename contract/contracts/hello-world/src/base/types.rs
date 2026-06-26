@@ -43,6 +43,8 @@ pub struct ScheduledNotification {
     pub revoked_by: Option<Address>,
     /// Ledger timestamp (seconds) at which the notification was revoked, if revoked.
     pub revoked_at: Option<u64>,
+    /// Notification title (required metadata for off-chain processing)
+    pub title: String,
 }
 
 #[contracttype]
