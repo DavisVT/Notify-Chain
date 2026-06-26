@@ -216,6 +216,9 @@ async function buildStatusResponse(options: EventsServerOptions): Promise<{
   return {
     timestamp: new Date().toISOString(),
     contracts: contractStatuses
+  };
+}
+
 async function fetchNetworkTipLedger(rpcUrl: string): Promise<{
   ledger: number | null;
   errorDetail?: string;
