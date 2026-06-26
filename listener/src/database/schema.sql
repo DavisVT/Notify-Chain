@@ -110,3 +110,16 @@ CREATE INDEX IF NOT EXISTS idx_rate_limit_events_timestamp
 CREATE INDEX IF NOT EXISTS idx_rate_limit_events_client_id 
   ON rate_limit_events(client_id);
 
+-- Persisted notification delivery metrics snapshots for historical analytics
+CREATE TABLE IF NOT EXISTS notification_metrics_snapshots (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  captured_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  window_start INTEGER NOT NULL,
+  window_end INTEGER NOT NULL,
+  total_recorded INTEGER NOT NULL,
+  snapshot_json TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_metrics_snapshots_captured_at
+  ON notification_metrics_snapshots(captured_at);
+

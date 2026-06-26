@@ -405,4 +405,29 @@ describe('GET /api/analytics', () => {
     const after = await request(server, 'GET', '/api/analytics');
     expect((after.body as any).totalRecorded).toBe(0);
   });
+
+  it('returns persisted historical snapshots via /api/analytics/history', async () => {
+    const aggregator = new NotificationAnalyticsAggregator();
+    aggregator.reset();
+    const metricsStore = {
+      getHistory: jest.fn().mockResolvedValue([
+        {
+          id: 1,
+          capturedAt: '2026-06-26T00:00:00.000Z',
+          snapshot: aggregator.snapshot(),
+        },
+      ]),
+    };
+
+    server = await startServer({
+      ...BASE_OPTIONS,
+      analyticsAggregator: aggregator,
+      metricsStore: metricsStore as any,
+    });
+
+    const res = await request(server, 'GET', '/api/analytics/history?limit=10');
+    expect(res.status).toBe(200);
+    expect((res.body as any).snapshots).toHaveLength(1);
+    expect(metricsStore.getHistory).toHaveBeenCalledWith(10, undefined);
+  });
 });

@@ -152,6 +152,20 @@ export function loadConfig(): Config {
       maxRequests: parseIntegerEnv('RATE_LIMIT_MAX_REQUESTS', '60'),
       clientOverrides,
     },
+    analytics: {
+      enabled: trimEnv('ANALYTICS_ENABLED') !== 'false',
+      maxRecords: parseIntegerEnv('ANALYTICS_MAX_RECORDS', '10000'),
+      maxBuckets: parseIntegerEnv('ANALYTICS_MAX_BUCKETS', '168'),
+      bucketSizeMs: parseIntegerEnv('ANALYTICS_BUCKET_SIZE_MS', String(60 * 60 * 1000)),
+      persistIntervalMs: parseIntegerEnv('ANALYTICS_PERSIST_INTERVAL_MS', '300000'),
+      snapshotRetentionDays: parseIntegerEnv('ANALYTICS_SNAPSHOT_RETENTION_DAYS', '30'),
+    },
+    cleanup: {
+      enabled: trimEnv('CLEANUP_ENABLED') !== 'false',
+      pollIntervalMs: parseIntegerEnv('CLEANUP_POLL_INTERVAL_MS', '3600000'),
+      notificationRetentionDays: parseIntegerEnv('CLEANUP_NOTIFICATION_RETENTION_DAYS', '30'),
+      executionLogRetentionDays: parseIntegerEnv('CLEANUP_EXECUTION_LOG_RETENTION_DAYS', '90'),
+    },
   };
 }
 

@@ -45,6 +45,8 @@ export interface Config {
   scheduler?: SchedulerConfig;
   databasePath?: string;
   rateLimit?: RateLimitConfig;
+  analytics?: AnalyticsConfig;
+  cleanup?: CleanupConfig;
 }
 
 export interface SchedulerConfig {
@@ -54,5 +56,25 @@ export interface SchedulerConfig {
   processorId?: string;
   batchSize: number;
   timingBufferMs: number;
+}
+
+export interface AnalyticsConfig {
+  enabled: boolean;
+  maxRecords: number;
+  maxBuckets: number;
+  bucketSizeMs: number;
+  /** How often to persist summarized snapshots (ms). */
+  persistIntervalMs: number;
+  /** How long to retain persisted snapshots (days). */
+  snapshotRetentionDays: number;
+}
+
+export interface CleanupConfig {
+  enabled: boolean;
+  pollIntervalMs: number;
+  /** Delete terminal notifications older than this many days. */
+  notificationRetentionDays: number;
+  /** Delete execution log rows older than this many days. */
+  executionLogRetentionDays: number;
 }
 

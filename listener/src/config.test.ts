@@ -74,6 +74,19 @@ describe('Config validation', () => {
         baseDelayMs: 5000,
         maxRetries: 5,
       },
+      analytics: {
+        enabled: true,
+        maxRecords: 10000,
+        maxBuckets: 168,
+        persistIntervalMs: 300000,
+        snapshotRetentionDays: 30,
+      },
+      cleanup: {
+        enabled: true,
+        pollIntervalMs: 3600000,
+        notificationRetentionDays: 30,
+        executionLogRetentionDays: 90,
+      },
     });
   });
 

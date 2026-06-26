@@ -6,6 +6,9 @@ import { ScheduledNotificationRepository } from './services/scheduled-notificati
 import { NotificationAPI } from './services/notification-api';
 import { initializeDatabase } from './database/database';
 import { DiscordNotificationService } from './services/discord-notification';
+import { initNotificationAnalyticsAggregator } from './services/notification-analytics-aggregator';
+import { NotificationMetricsStore } from './services/notification-metrics-store';
+import { NotificationMetricsRunner } from './services/notification-metrics-runner';
 import logger from './utils/logger';
 import { loadConfig, ConfigError } from './config';
 
@@ -14,21 +17,37 @@ dotenv.config();
 async function main() {
   const config = loadConfig();
 
-  // Initialize database if scheduler or rate limiting is enabled
   let scheduler: NotificationScheduler | null = null;
   let notificationAPI: NotificationAPI | null = null;
-  const needDb = config.scheduler?.enabled || config.rateLimit?.enabled;
+  let metricsRunner: NotificationMetricsRunner | null = null;
+  let metricsStore: NotificationMetricsStore | null = null;
+
+  const needDb =
+    config.scheduler?.enabled ||
+    config.rateLimit?.enabled ||
+    config.analytics?.enabled ||
+    config.cleanup?.enabled;
+
+  if (config.analytics?.enabled) {
+    initNotificationAnalyticsAggregator(config.analytics);
+  }
 
   if (needDb) {
     try {
       logger.info('Initializing database');
       const db = await initializeDatabase(config.databasePath);
 
+      if (config.analytics?.enabled) {
+        metricsStore = new NotificationMetricsStore(db);
+        metricsRunner = new NotificationMetricsRunner(config.analytics, metricsStore);
+        await metricsRunner.start();
+        logger.info('Notification metrics runner started successfully');
+      }
+
       if (config.scheduler?.enabled) {
         const repository = new ScheduledNotificationRepository(db);
         notificationAPI = new NotificationAPI(repository);
 
-        // Initialize scheduler with Discord service if available
         let discordService: DiscordNotificationService | null = null;
         if (config.discord) {
           discordService = new DiscordNotificationService(config.discord);
@@ -40,19 +59,19 @@ async function main() {
         logger.info('Notification scheduler started successfully');
       }
     } catch (error) {
-      logger.error('Failed to initialize database or scheduler', { error });
+      logger.error('Failed to initialize database or background workers', { error });
       throw error;
     }
   }
 
-  // Start events server and subscriber
   const eventsServer = startEventsServer({
     port: config.eventsApiPort,
     corsOrigin: config.eventsApiCorsOrigin,
     stellarRpcUrl: config.stellarRpcUrl,
     discordWebhookUrl: config.discord?.webhookUrl,
-    notificationAPI, // Pass API to events server for scheduling endpoints
+    notificationAPI,
     rateLimit: config.rateLimit,
+    metricsStore,
   });
 
   const subscriber = new EventSubscriber(config);
@@ -60,6 +79,10 @@ async function main() {
 
   const shutdown = async () => {
     logger.info('Shutting down services...');
+
+    if (metricsRunner) {
+      await metricsRunner.stop();
+    }
 
     if (scheduler) {
       await scheduler.stop();

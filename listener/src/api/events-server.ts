@@ -22,6 +22,7 @@ import {
   setNotificationAnalyticsAggregator,
   NotificationAnalyticsAggregator,
 } from '../services/notification-analytics-aggregator';
+import { NotificationMetricsStore } from '../services/notification-metrics-store';
 
 export interface EventsServerOptions {
   port: number;
@@ -37,6 +38,7 @@ export interface EventsServerOptions {
    * process-wide default aggregator is used.
    */
   analyticsAggregator?: NotificationAnalyticsAggregator | null;
+  metricsStore?: NotificationMetricsStore | null;
 }
 
 type ServiceStatus = 'ok' | 'error' | 'not_configured';
@@ -242,8 +244,38 @@ export function createEventsServer(options: EventsServerOptions): http.Server {
       return;
     }
 
+    // GET /api/analytics/history
+    if (req.method === 'GET' && url.pathname === '/api/analytics/history') {
+      const metricsStore = options.metricsStore;
+      if (!metricsStore) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Metrics history store unavailable' }));
+        return;
+      }
+
+      const limit = Math.min(
+        100,
+        Math.max(1, Number.parseInt(url.searchParams.get('limit') ?? '50', 10) || 50),
+      );
+      const sinceParam = url.searchParams.get('since');
+      const since = sinceParam ? new Date(sinceParam) : undefined;
+
+      const history = await metricsStore.getHistory(limit, since);
+
+      logger.info('Handling GET /api/analytics/history', {
+        requestId,
+        correlationId,
+        count: history.length,
+        durationMs: Date.now() - startTime,
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ snapshots: history }));
+      return;
+    }
+
     // GET /api/analytics
-    if (req.method === 'GET' && url.pathname.startsWith('/api/analytics')) {
+    if (req.method === 'GET' && url.pathname === '/api/analytics') {
       const aggregator =
         options.analyticsAggregator !== undefined
           ? options.analyticsAggregator
