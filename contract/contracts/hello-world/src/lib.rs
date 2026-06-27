@@ -522,6 +522,8 @@ mod storage_optimization_test;
 #[cfg(test)]
 #[path = "tests/preferences_test.rs"]
 mod preferences_test;
+
+#[cfg(test)]
 mod tests {
     #[path = "../tests/autoshare_test.rs"]
     mod autoshare_test;
