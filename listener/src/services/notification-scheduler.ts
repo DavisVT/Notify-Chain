@@ -6,6 +6,7 @@ import { SchedulerConfig, ScheduledNotification } from '../types/scheduled-notif
 import { DiscordNotificationService } from './discord-notification';
 import { BatchValidationService } from './batch-validation-service';
 import { NotificationChannel } from '../utils/batch-validator';
+import { getWorkerManager } from './worker-manager';
 
 /**
  * Background scheduler that processes scheduled notifications
@@ -67,6 +68,7 @@ export class NotificationScheduler {
 
   /**
    * Stop the scheduler gracefully
+   * Waits for all in-flight jobs to complete before returning
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
@@ -80,6 +82,10 @@ export class NotificationScheduler {
       clearTimeout(this.timer);
       this.timer = null;
     }
+
+    // Wait for all active jobs to complete
+    const workerManager = getWorkerManager();
+    await workerManager.initiateGracefulShutdown();
   }
 
   /**
@@ -151,9 +157,45 @@ export class NotificationScheduler {
         processorId: this.processorId,
       });
 
-      // Process each notification
+      // Check if shutdown is in progress - don't accept new jobs
+      const workerManager = getWorkerManager();
+      if (workerManager.isShutdownInProgress()) {
+        logger.info('Shutdown in progress - releasing unprocessed notifications', {
+          requestId,
+          count: notifications.length,
+        });
+        // Release locks on unprocessed notifications
+        for (const notification of notifications) {
+          await this.repository.markAsFailedOrRetry(
+            notification.id!,
+            new Error('Scheduler shutting down'),
+            notification.retryCount,
+            notification.maxRetries
+          );
+        }
+        return;
+      }
+
+      // Process each notification with job tracking
       for (const notification of notifications) {
-        await this.processNotification(notification, requestId);
+        const jobId = `notification-${notification.id}`;
+        if (!workerManager.startJob(jobId)) {
+          // Shutdown is in progress, don't process new jobs
+          logger.info('Job rejected - scheduler shutting down', { jobId });
+          await this.repository.markAsFailedOrRetry(
+            notification.id!,
+            new Error('Scheduler shutting down'),
+            notification.retryCount,
+            notification.maxRetries
+          );
+          continue;
+        }
+
+        try {
+          await this.processNotification(notification, requestId);
+        } finally {
+          workerManager.completeJob(jobId);
+        }
       }
 
       logger.info('Scheduler batch complete', {
