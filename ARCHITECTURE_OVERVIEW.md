@@ -6,9 +6,15 @@
 
 This guide gives you a high-level mental model of the system: what each layer
 is responsible for, how data moves between them, and which files in the
-repository implement each piece. It does **not** replace the deeper
-subsystem docs linked at the end — read it first, then dive into the linked
-material as needed.
+repository implement each piece.
+
+> **New to NotifyChain?** Start with
+> [`SYSTEM_ARCHITECTURE.md`](SYSTEM_ARCHITECTURE.md) for a visual overview
+> with Mermaid architecture diagrams, then return here for the detailed
+> walkthrough.
+
+It does **not** replace the deeper subsystem docs linked at the end — read it
+first, then dive into the linked material as needed.
 
 ---
 
@@ -429,7 +435,8 @@ Notify-Chain/
 ├── issues/                    Issue templates + workflow specs
 ├── .github/                   Workflows, PR templates, issue forms
 ├── *.md                       Repo-root docs (README, this guide, runbooks)
-└── ARCHITECTURE_OVERVIEW.md   ← you are here
+├── ARCHITECTURE_OVERVIEW.md   ← you are here
+└── SYSTEM_ARCHITECTURE.md     Visual system architecture with Mermaid diagrams
 ```
 
 When you start working on a component:
@@ -477,6 +484,10 @@ maintainers track open questions actively.
 
 - [Contributor Architecture Deep Dive](file:///workspaces/Notify-Chain/CONTRIBUTOR_ARCHITECTURE_DEEP_DIVE.md) — Deep dive into event indexing, lifecycle, scheduler concurrency model, sequence diagrams, and module mapping.
 - `Documents/Task Bounty/ARCHITECTURE.md` — TaskBounty contract lifecycle, state machines, and event schema.
+- `SYSTEM_ARCHITECTURE.md` — Visual system architecture with Mermaid
+  diagrams covering all layers, component interactions, and data flow.
+- `Documents/Task Bounty/ARCHITECTURE.md` — TaskBounty contract
+  lifecycle, state machines, and event schema.
 - `listener/ARCHITECTURE-DIAGRAM.md` — Scheduler subsystem diagrams.
 - `Documents/Task Bounty/PROJECT_OVERVIEW.md` — High-level project pitch for the TaskBounty variant.
 
