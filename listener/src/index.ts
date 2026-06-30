@@ -131,6 +131,8 @@ async function main() {
     stellarNetworkPassphrase: config.stellarNetworkPassphrase,
     contractAddresses: config.contractAddresses,
     discordWebhookUrl: config.discord?.webhookUrl,
+    webhookSecrets: config.webhookSecrets,
+    apiKeys: config.apiKeys,
     notificationAPI,
     templateService,
     rateLimit: config.rateLimit,

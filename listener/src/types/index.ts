@@ -33,6 +33,11 @@ export interface RateLimitConfig {
   clientOverrides: Record<string, { maxRequests: number; windowMs?: number }>;
 }
 
+export interface ApiKey {
+  key: string;
+  name?: string;
+}
+
 export interface Config {
   stellarNetwork: string;
   stellarRpcUrl: string;
@@ -47,6 +52,7 @@ export interface Config {
   retryQueue?: RetryQueueConfig;
   eventQueue?: EventQueueConfig;
   webhookSecrets?: WebhookSecret[];
+  apiKeys?: ApiKey[];
   scheduler?: SchedulerConfig;
   retryScheduler?: RetrySchedulerOptions;
   databasePath?: string;
