@@ -1,5 +1,6 @@
 import { Database } from '../database/database';
 import logger from '../utils/logger';
+import { compressPayload, decompressPayload } from '../utils/payload-compression';
 import {
   ScheduledNotification,
   ScheduledNotificationRow,
@@ -31,7 +32,10 @@ export class ScheduledNotificationRepository {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
+    const serializedPayload = compressPayload(input.payload);
+
     const params = [
+      serializedPayload,
       payloadJson,
       payloadHash,
       input.notificationType,
@@ -495,6 +499,7 @@ export class ScheduledNotificationRepository {
   private rowToModel(row: ScheduledNotificationRow): ScheduledNotification {
     return {
       id: row.id,
+      payload: decompressPayload(row.payload),
       payload: row.payload,
       payloadHash: row.payload_hash,
       notificationType: row.notification_type as any,
