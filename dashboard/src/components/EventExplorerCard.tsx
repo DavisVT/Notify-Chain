@@ -1,4 +1,5 @@
 import type { BlockchainEvent } from '../types/event';
+import type { ContractStatus } from '../services/eventsApi';
 import { formatTimestamp } from '../utils/formatTime';
 
 const EVENT_KIND_STYLES: Record<string, string> = {
@@ -37,6 +38,17 @@ interface EventExplorerCardProps {
 }
 
 export function EventExplorerCard({ event, onCopyContract, isCopied, onSelect }: EventExplorerCardProps) {
+  contractStatuses: ContractStatus[];
+}
+
+export function EventExplorerCard({
+  event,
+  onCopyContract,
+  isCopied,
+  contractStatuses,
+}: EventExplorerCardProps) {
+  const contractStatus = contractStatuses.find((c) => c.address === event.contractAddress);
+  const isPaused = contractStatus?.paused ?? false;
   const label = event.eventName ?? event.type;
   const badgeClass = getEventKindClass(event.type);
   const kindLabel = getEventKindLabel(event.type);
@@ -76,6 +88,19 @@ export function EventExplorerCard({ event, onCopyContract, isCopied, onSelect }:
           >
             {isCopied ? 'Copied' : 'Copy'}
           </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              className="event-explorer__copy-button"
+              onClick={() => onCopyContract(event.contractAddress)}
+              aria-label={`Copy contract address ${event.contractAddress}`}
+            >
+              {isCopied ? 'Copied' : 'Copy'}
+            </button>
+            {isPaused && (
+              <span className="event-explorer__badge event-explorer__badge--paused">Paused</span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { BlockchainEvent } from '../types/event';
+import type { ContractStatus } from '../services/eventsApi';
 import { EventExplorerCard } from './EventExplorerCard';
 
 interface EventExplorerTableProps {
@@ -8,6 +9,10 @@ interface EventExplorerTableProps {
 }
 
 export function EventExplorerTable({ events, onSelectEvent }: EventExplorerTableProps) {
+  contractStatuses: ContractStatus[];
+}
+
+export function EventExplorerTable({ events, contractStatuses }: EventExplorerTableProps) {
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
   async function syncCopyText(text: string) {
@@ -60,6 +65,7 @@ export function EventExplorerTable({ events, onSelectEvent }: EventExplorerTable
             onCopyContract={handleCopyContract}
             isCopied={copiedAddress === event.contractAddress}
             onSelect={onSelectEvent}
+            contractStatuses={contractStatuses}
           />
         ))}
       </div>
