@@ -188,6 +188,7 @@ export class BatchValidationService {
         invalidEntries.push({
           index,
           error: validation.error ?? '',
+          error: validation.error ?? 'Invalid notification item',
         });
       }
     });
