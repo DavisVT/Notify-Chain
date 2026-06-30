@@ -392,6 +392,8 @@ impl AutoShareContract {
     /// Emits a `BatchProcessingCompleted` event for off-chain listeners.
     pub fn emit_batch_completed(env: Env, batch_id: BytesN<32>, processed_count: u32) {
         autoshare_logic::emit_batch_completed(env, batch_id, processed_count).unwrap();
+    }
+
     // ============================================================================
     // Batch Notification Creation
     // ============================================================================
@@ -520,7 +522,7 @@ impl AutoShareContract {
 
     /// Record a failed notification delivery for a sender.
     /// Decreases the sender's reputation score based on delivery history.
-    pub fn record_delivery_failure(env: Env, sender: Address) {
+    pub fn record_reputation_failure(env: Env, sender: Address) {
         reputation_logic::record_failed_delivery(&env, &sender).unwrap();
     }
 
@@ -638,4 +640,7 @@ mod tests {
 
     #[path = "../tests/access_log_test.rs"]
     mod access_log_test;
+
+    #[path = "../tests/event_emission_test.rs"]
+    mod event_emission_test;
 }

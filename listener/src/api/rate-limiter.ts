@@ -155,8 +155,8 @@ export class RateLimiter {
       res.writeHead(429, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
-          error: 'Too Many Requests',
-          message: `Rate limit exceeded. Try again in ${waitSec} seconds.`,
+          error: 'TooManyRequests',
+          message: 'Rate limit exceeded. Please try again later.',
         })
       );
       return false;

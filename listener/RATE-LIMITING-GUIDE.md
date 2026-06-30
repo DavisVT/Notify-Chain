@@ -115,8 +115,8 @@ Retry-After: 45
 Content-Type: application/json
 
 {
-  "error": "Too Many Requests",
-  "message": "Rate limit exceeded. Try again in 45 seconds."
+  "error": "TooManyRequests",
+  "message": "Rate limit exceeded. Please try again later."
 }
 ```
 

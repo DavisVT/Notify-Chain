@@ -1,13 +1,11 @@
+use crate::autoshare_logic::DataKey;
 use crate::base::events::{NotificationCategory, NotificationPriority, ReputationUpdated, ReputationTierChanged};
-use crate::base::reputation::{SenderReputation, INITIAL_REPUTATION_SCORE};
-use soroban_sdk::{Address, Env, Symbol, storage::Persistent, String as SorobanString, Error};
-
-const REPUTATION_KEY_PREFIX: &str = "reputation_";
+use crate::base::reputation::SenderReputation;
+use soroban_sdk::{Address, Env, Error};
 
 /// Get the storage key for a sender's reputation.
-fn reputation_key(sender: &Address) -> SorobanString {
-    let key_str = format!("{}{}", REPUTATION_KEY_PREFIX, sender);
-    SorobanString::from_small_str(&key_str)
+fn reputation_key(sender: &Address) -> DataKey {
+    DataKey::Reputation(sender.clone())
 }
 
 /// Initialize or get a sender's reputation record.
@@ -41,31 +39,27 @@ pub fn record_successful_delivery(
     env.storage().persistent().set(&key, &reputation);
 
     // Emit reputation update event
-    env.events().publish(
-        ("rep_update",),
-        ReputationUpdated {
-            sender: sender.clone(),
-            category: NotificationCategory::Notification,
-            priority: NotificationPriority::Medium,
-            new_score: reputation.reputation_score,
-            successful_count: reputation.successful_deliveries,
-            failed_count: reputation.failed_deliveries,
-        },
-    );
+    ReputationUpdated {
+        sender: sender.clone(),
+        category: NotificationCategory::Notification,
+        priority: NotificationPriority::Medium,
+        new_score: reputation.reputation_score,
+        successful_count: reputation.successful_deliveries,
+        failed_count: reputation.failed_deliveries,
+    }
+    .publish(env);
 
     // Emit tier change event if tier changed
     if old_tier != new_tier {
-        env.events().publish(
-            ("rep_tier_change",),
-            ReputationTierChanged {
-                sender: sender.clone(),
-                category: NotificationCategory::Notification,
-                priority: NotificationPriority::High,
-                old_tier: old_tier as u32,
-                new_tier: new_tier as u32,
-                reputation_score: reputation.reputation_score,
-            },
-        );
+        ReputationTierChanged {
+            sender: sender.clone(),
+            category: NotificationCategory::Notification,
+            priority: NotificationPriority::High,
+            old_tier: old_tier as u32,
+            new_tier: new_tier as u32,
+            reputation_score: reputation.reputation_score,
+        }
+        .publish(env);
     }
 
     Ok(())
@@ -88,31 +82,27 @@ pub fn record_failed_delivery(
     env.storage().persistent().set(&key, &reputation);
 
     // Emit reputation update event
-    env.events().publish(
-        ("rep_update",),
-        ReputationUpdated {
-            sender: sender.clone(),
-            category: NotificationCategory::Notification,
-            priority: NotificationPriority::Medium,
-            new_score: reputation.reputation_score,
-            successful_count: reputation.successful_deliveries,
-            failed_count: reputation.failed_deliveries,
-        },
-    );
+    ReputationUpdated {
+        sender: sender.clone(),
+        category: NotificationCategory::Notification,
+        priority: NotificationPriority::Medium,
+        new_score: reputation.reputation_score,
+        successful_count: reputation.successful_deliveries,
+        failed_count: reputation.failed_deliveries,
+    }
+    .publish(env);
 
     // Emit tier change event if tier changed
     if old_tier != new_tier {
-        env.events().publish(
-            ("rep_tier_change",),
-            ReputationTierChanged {
-                sender: sender.clone(),
-                category: NotificationCategory::Notification,
-                priority: NotificationPriority::High,
-                old_tier: old_tier as u32,
-                new_tier: new_tier as u32,
-                reputation_score: reputation.reputation_score,
-            },
-        );
+        ReputationTierChanged {
+            sender: sender.clone(),
+            category: NotificationCategory::Notification,
+            priority: NotificationPriority::High,
+            old_tier: old_tier as u32,
+            new_tier: new_tier as u32,
+            reputation_score: reputation.reputation_score,
+        }
+        .publish(env);
     }
 
     Ok(())

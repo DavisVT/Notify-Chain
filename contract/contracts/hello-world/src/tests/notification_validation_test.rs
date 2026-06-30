@@ -19,10 +19,16 @@ use soroban_sdk::{Address, BytesN, String, TryFromVal, Vec};
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+/// Categories are the **second-to-last** topic (priority is the trailing
+/// topic), so this reads from the back accordingly.
 fn last_category(env: &soroban_sdk::Env) -> Option<NotificationCategory> {
     let (_addr, topics, _data) = env.events().all().last()?;
-    let last = topics.last()?;
-    NotificationCategory::try_from_val(env, &last).ok()
+    let n = topics.len();
+    if n < 2 {
+        return None;
+    }
+    let category_topic = topics.get(n - 2)?;
+    NotificationCategory::try_from_val(env, &category_topic).ok()
 }
 
 // ── create: invalid payload — zero usage count ───────────────────────────────
