@@ -273,7 +273,7 @@ pub struct AuditRecordAppended {
     pub category: NotificationCategory,
     pub seq: u64,
     pub actor: Address,
-    pub timestamp: u64,
+    // GAS: Removed `timestamp` — derivable from ledger metadata
 }
 
 /// Emitted when a batch of notifications is created in a single transaction.
@@ -297,8 +297,8 @@ pub struct BatchNotificationsCreated {
 ///
 /// The `notification_id` is published as an indexed topic so consumers can
 /// subscribe to the revocation of a specific notification; the `revoked_by`
-/// address indicates who initiated the revocation, and `revoked_at` records
-/// the ledger timestamp when the revocation occurred.
+/// address indicates who initiated the revocation. The timestamp when the
+/// revocation occurred is derivable from ledger metadata.
 #[contractevent(data_format = "single-value")]
 #[derive(Clone)]
 pub struct NotificationRevoked {
@@ -310,9 +310,15 @@ pub struct NotificationRevoked {
     pub category: NotificationCategory,
     #[topic]
     pub priority: NotificationPriority,
-    pub revoked_at: u64,
+    // GAS: Removed `revoked_at` — derivable from ledger metadata
 }
 
+/// Emitted when an off-chain batch of notifications finishes processing.
+#[contractevent(data_format = "single-value")]
+#[derive(Clone)]
+pub struct BatchProcessingCompleted {
+    #[topic]
+    pub batch_id: BytesN<32>,
 /// Emitted when a scheduled notification's expiry period is extended by an authorized sender.
 #[contractevent(data_format = "single-value")]
 #[derive(Clone)]
@@ -328,6 +334,13 @@ pub struct NotificationExtended {
     pub new_expires_at: u64,
 }
 
+/// Emitted when a sender's reputation score is updated.
+/// Triggered by successful or failed notification delivery.
+#[contractevent(data_format = "single-value")]
+#[derive(Clone)]
+pub struct ReputationUpdated {
+    #[topic]
+    pub sender: Address,
 /// Emitted when protocol-level notification limits are configured or updated.
 #[contractevent]
 #[derive(Clone)]
@@ -338,8 +351,75 @@ pub struct NotificationLimitsConfigured {
     pub category: NotificationCategory,
     #[topic]
     pub priority: NotificationPriority,
+    pub new_score: i64,
+    pub successful_count: u32,
+    pub failed_count: u32,
+}
+
+/// Emitted when a sender's reputation tier changes (e.g., from Bronze to Silver).
+#[contractevent(data_format = "single-value")]
+#[derive(Clone)]
+pub struct ReputationTierChanged {
+    #[topic]
+    pub sender: Address,
+    #[topic]
+    pub category: NotificationCategory,
+    #[topic]
+    pub priority: NotificationPriority,
+    pub old_tier: u32,
+    pub new_tier: u32,
+    pub reputation_score: i64,
+}
+
+    pub processed_count: u32,
     pub max_payload_size: u32,
     pub max_expiration_seconds: u64,
     pub min_expiration_seconds: u64,
     pub max_batch_size: u32,
+}
+
+// ============================================================================
+// Schema Version Tracking  (Issue #309)
+// ============================================================================
+
+/// Emitted when the on-chain notification schema version is set or upgraded.
+///
+/// Off-chain consumers should read `schema_version` from every event to gate
+/// their parsing logic. Unsupported versions must be rejected at the listener
+/// layer so incompatible payloads never reach downstream consumers.
+#[contractevent]
+#[derive(Clone)]
+pub struct SchemaVersionSet {
+    #[topic]
+    pub admin: Address,
+    #[topic]
+    pub category: NotificationCategory,
+    #[topic]
+    pub priority: NotificationPriority,
+    /// New schema version number.
+    pub schema_version: u32,
+    /// Previous schema version (0 when first set).
+    pub previous_version: u32,
+}
+
+// ============================================================================
+// Access Logging  (Issue #312)
+// ============================================================================
+
+/// Emitted whenever a protected notification record is accessed.
+///
+/// Off-chain indexers should key off `(notification_id, accessor)` to build an
+/// immutable access trail. The `accessed_at` timestamp is provided for ordering
+/// and compliance reporting.
+#[contractevent]
+#[derive(Clone)]
+pub struct NotificationAccessed {
+    #[topic]
+    pub notification_id: BytesN<32>,
+    #[topic]
+    pub accessor: Address,
+    #[topic]
+    pub category: NotificationCategory,
+    /// Ledger timestamp (seconds) when the access occurred.
+    pub accessed_at: u64,
 }

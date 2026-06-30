@@ -7,6 +7,7 @@ pub mod base {
     pub mod events;
     pub mod metadata_validation;
     pub mod preferences;
+    pub mod reputation;
     pub mod types;
 }
 
@@ -17,6 +18,7 @@ pub mod interfaces {
 // 2. Declare the main logic files where the functions are implemented
 mod autoshare_logic;
 mod preferences_logic;
+mod reputation_logic;
 
 #[cfg(test)]
 pub mod mock_token;
@@ -387,6 +389,9 @@ impl AutoShareContract {
         autoshare_logic::expire_notification(env, notification_id).unwrap();
     }
 
+    /// Emits a `BatchProcessingCompleted` event for off-chain listeners.
+    pub fn emit_batch_completed(env: Env, batch_id: BytesN<32>, processed_count: u32) {
+        autoshare_logic::emit_batch_completed(env, batch_id, processed_count).unwrap();
     // ============================================================================
     // Batch Notification Creation
     // ============================================================================
@@ -502,6 +507,71 @@ impl AutoShareContract {
     pub fn get_notification_limits(env: Env) -> base::types::NotificationLimits {
         autoshare_logic::get_notification_limits(env)
     }
+
+    // ============================================================================
+    // Sender Reputation Tracking
+    // ============================================================================
+
+    /// Record a successful notification delivery for a sender.
+    /// Updates the sender's reputation score based on delivery history.
+    pub fn record_delivery_success(env: Env, sender: Address) {
+        reputation_logic::record_successful_delivery(&env, &sender).unwrap();
+    }
+
+    /// Record a failed notification delivery for a sender.
+    /// Decreases the sender's reputation score based on delivery history.
+    pub fn record_delivery_failure(env: Env, sender: Address) {
+        reputation_logic::record_failed_delivery(&env, &sender).unwrap();
+    }
+
+    /// Get the current reputation score for a sender.
+    /// Score ranges from 0 (lowest) to 100 (highest).
+    pub fn get_sender_reputation_score(env: Env, sender: Address) -> i64 {
+        reputation_logic::get_reputation_score(&env, &sender).unwrap_or(50)
+    }
+
+    /// Get the complete reputation record for a sender.
+    /// Includes successful deliveries, failed deliveries, and current score.
+    pub fn get_sender_reputation(env: Env, sender: Address) -> base::reputation::SenderReputation {
+        reputation_logic::get_reputation(&env, &sender)
+            .unwrap_or_else(|_| base::reputation::SenderReputation::new(sender, env.ledger().timestamp()))
+    }
+
+    /// Get the reputation tier for a sender.
+    /// Tier levels: 0=Unverified, 1=Bronze, 2=Silver, 3=Gold, 4=Platinum
+    pub fn get_sender_reputation_tier(env: Env, sender: Address) -> u32 {
+        reputation_logic::get_reputation_tier(&env, &sender).unwrap_or(0)
+    }
+
+    // ============================================================================
+    // Schema Version Tracking  (Issue #309)
+    // ============================================================================
+
+    /// Sets the on-chain notification schema version. Only the admin can call.
+    /// Emits a SchemaVersionSet event. Rejects versions outside the supported range.
+    pub fn set_schema_version(env: Env, admin: Address, schema_version: u32) {
+        autoshare_logic::set_schema_version(env, admin, schema_version).unwrap();
+    }
+
+    /// Returns the current on-chain schema version (0 if never set).
+    pub fn get_schema_version(env: Env) -> u32 {
+        autoshare_logic::get_schema_version(env)
+    }
+
+    /// Returns true if the given schema version is within the supported range.
+    pub fn is_version_supported(env: Env, version: u32) -> bool {
+        autoshare_logic::is_version_supported(env, version)
+    }
+
+    // ============================================================================
+    // Access Logging  (Issue #312)
+    // ============================================================================
+
+    /// Emits a NotificationAccessed event for the specified notification.
+    /// Call whenever a protected notification record is read to build an immutable access trail.
+    pub fn record_notification_access(env: Env, notification_id: BytesN<32>, accessor: Address) {
+        autoshare_logic::record_notification_access(env, notification_id, accessor).unwrap();
+    }
 }
 
 #[cfg(test)]
@@ -519,6 +589,8 @@ mod storage_optimization_test;
 #[cfg(test)]
 #[path = "tests/preferences_test.rs"]
 mod preferences_test;
+
+#[cfg(test)]
 mod tests {
     #[path = "../tests/autoshare_test.rs"]
     mod autoshare_test;
@@ -538,6 +610,8 @@ mod tests {
     #[path = "../tests/notification_test.rs"]
     mod notification_test;
 
+    #[path = "../tests/notification_validation_test.rs"]
+    mod notification_validation_test;
     #[path = "../tests/category_registry_test.rs"]
     mod category_registry_test;
 
@@ -558,4 +632,10 @@ mod tests {
 
     #[path = "../tests/fuzz_test.rs"]
     mod fuzz_test;
+
+    #[path = "../tests/schema_version_test.rs"]
+    mod schema_version_test;
+
+    #[path = "../tests/access_log_test.rs"]
+    mod access_log_test;
 }
