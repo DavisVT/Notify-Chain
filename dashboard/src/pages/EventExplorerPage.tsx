@@ -42,6 +42,10 @@ export function EventExplorerPage() {
   const setEvents = useEventStore((state) => state.setEvents);
   const setLoading = useEventStore((state) => state.setLoading);
   const setError = useEventStore((state) => state.setError);
+  // Re-fetch whenever lastFetchedAt is reset to 0 (via invalidateEvents()) so
+  // that a successful blockchain status-change transaction is reflected on the
+  // next render cycle without requiring a full hard refresh.
+  const lastFetchedAt = useEventStore((state) => state.lastFetchedAt);
   const { isLoading, error } = useEventLoadingState();
   const filters = useEventFilters();
   const filteredEvents = useFilteredEvents();
@@ -51,6 +55,13 @@ export function EventExplorerPage() {
   }, []);
 
   useEffect(() => {
+    // Guard: skip the re-fetch if we already have fresh data from this session.
+    // lastFetchedAt === 0 means either first load or an explicit cache
+    // invalidation (e.g. after a blockchain transaction mutated notification state).
+    if (lastFetchedAt !== 0) {
+      return;
+    }
+
     let cancelled = false;
 
     async function loadEvents() {
@@ -91,7 +102,7 @@ export function EventExplorerPage() {
     return () => {
       cancelled = true;
     };
-  }, [setEvents, setError, setLoading]);
+  }, [lastFetchedAt, setEvents, setError, setLoading]);
 
   // Clear stale events and re-fetch whenever the connected wallet address
   // changes (switch or disconnect). This is the fix for issue #175.
